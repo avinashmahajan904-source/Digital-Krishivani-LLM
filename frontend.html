@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Image Analysis Demo</title>
+<style>
+  body { font-family: system-ui, sans-serif; max-width: 640px; margin: 40px auto; padding: 0 16px; }
+  #result { white-space: pre-wrap; background: #f4f4f4; padding: 12px; border-radius: 6px; margin-top: 16px; }
+  button { padding: 8px 16px; cursor: pointer; }
+  #error { color: #b00020; margin-top: 12px; }
+</style>
+</head>
+<body>
+  <h1>Image Analysis</h1>
+  <input type="file" id="imageInput" accept="image/*" />
+  <button id="submitBtn">Analyze</button>
+  <div id="error"></div>
+  <pre id="result"></pre>
+
+<script>
+  // Point this at wherever your FastAPI server is actually running.
+  const API_BASE_URL = "http://localhost:8000";
+
+  const input = document.getElementById("imageInput");
+  const button = document.getElementById("submitBtn");
+  const resultEl = document.getElementById("result");
+  const errorEl = document.getElementById("error");
+
+  button.addEventListener("click", async () => {
+    errorEl.textContent = "";
+    resultEl.textContent = "";
+
+    const file = input.files[0];
+    if (!file) {
+      errorEl.textContent = "Please choose an image file first.";
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("image", file);
+
+    button.disabled = true;
+    button.textContent = "Analyzing...";
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/analyze`, {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        // FastAPI's HTTPException puts the message in "detail"
+        throw new Error(data.detail || `Request failed with status ${response.status}`);
+      }
+
+      resultEl.textContent = JSON.stringify(data.result, null, 2);
+    } catch (err) {
+      errorEl.textContent = `Error: ${err.message}`;
+    } finally {
+      button.disabled = false;
+      button.textContent = "Analyze";
+    }
+  });
+</script>
+</body>
+</html>
